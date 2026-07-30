@@ -15,10 +15,10 @@ def check_openmvs_loads():
     # aborts before the banner prints. Windows resolves DLLs via PATH instead.
     if sys.platform == "win32":
         return
-    omvs = os.path.join(ROOT, "SuperBuild", "install", "bin", "OpenMVS")
+    bin_dir = os.path.join(ROOT, "SuperBuild", "install", "bin")
     for name in ("DensifyPointCloud", "ReconstructMesh"):
         proc = subprocess.run(
-            [os.path.join(omvs, name), "--help"], capture_output=True, text=True,
+            [os.path.join(bin_dir, name), "--help"], capture_output=True, text=True,
         )
         if "OpenMVS" not in proc.stdout:
             sys.exit("smoke failed: %s did not load" % name)
