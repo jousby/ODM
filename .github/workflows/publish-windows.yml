@@ -12,6 +12,12 @@ permissions:
   contents: write
   id-token: write
 
+# Let a tagged release build run to completion instead of being superseded by a
+# later push to the same ref. Different refs (master vs. a tag) never contend.
+concurrency:
+  group: publish-windows-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: windows-2022
