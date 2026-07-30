@@ -73,6 +73,10 @@ tbb-devel = "2022.3.*"  # headers + TBBConfig.cmake for mvstexturing (runtime tb
 vswhere = "*"
 vs2022_win-64 = "*"
 
+# Read by SuperBuild/CMakeLists.txt to enable CUDA.
+[feature.gpu.activation]
+env = { ODM_ENABLE_CUDA = "ON" }
+
 [feature.gpu-build.dependencies]
 cuda-toolkit = "12.*"
 
