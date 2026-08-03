@@ -100,7 +100,10 @@ env = { PYTHONUTF8 = "1" }
 LD_LIBRARY_PATH = "$PIXI_PROJECT_ROOT/SuperBuild/install/lib:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
 
 [target.osx.activation.env]
-DYLD_LIBRARY_PATH = "$PIXI_PROJECT_ROOT/SuperBuild/install/lib:$CONDA_PREFIX/lib:$DYLD_LIBRARY_PATH"
+DYLD_LIBRARY_PATH = "$PIXI_PROJECT_ROOT/SuperBuild/install/lib:$DYLD_LIBRARY_PATH"
+# Using the fallback allows PyPi libs to use the system libs on macOS while
+# allowing conda deps to find in the venv
+DYLD_FALLBACK_LIBRARY_PATH = "$CONDA_PREFIX/lib:$HOME/lib:/usr/local/lib:/lib:/usr/lib"
 
 [tasks]
 build = { cmd = "cmake -S SuperBuild -B SuperBuild/build && cmake --build SuperBuild/build", description = "Configure and compile SuperBuild" }
