@@ -38,7 +38,7 @@ def build_overviews(orthophoto_file):
                 '--config BIGTIFF_OVERVIEW IF_SAFER '
                 '--config COMPRESS_OVERVIEW JPEG '
                 '--config INTERLEAVE_OVERVIEW PIXEL '
-                '--config PHOTOMETRIC_OVERVIEW YCBCR'
+                '--config PHOTOMETRIC_OVERVIEW YCBCR '
                 '{orthophoto} 2 4 8 16'.format(**kwargs))
 
 def generate_png(orthophoto_file, output_file=None, outsize=None):
