@@ -13,7 +13,7 @@ from rasterio.mask import mask
 from opendm import io
 from opendm.tiles.tiler import generate_orthophoto_tiles
 from opendm.cogeo import convert_to_cogeo
-from opendm.utils import add_raster_meta_tags
+from opendm.utils import add_raster_meta_tags, double_quote
 from osgeo import gdal
 from osgeo import ogr
 
@@ -31,7 +31,7 @@ def get_orthophoto_vars(args):
 
 def build_overviews(orthophoto_file):
     log.ODM_INFO("Building Overviews")
-    kwargs = {'orthophoto': orthophoto_file}
+    kwargs = {'orthophoto': double_quote(orthophoto_file)}
     
     # Run gdaladdo
     system.run('gdaladdo -r average '
