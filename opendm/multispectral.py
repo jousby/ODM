@@ -116,7 +116,7 @@ def vignette_map(photo):
 
 def dn_to_reflectance(photo, image, use_sun_sensor=True):
     radiance = dn_to_radiance(photo, image)
-    irradiance = compute_irradiance(photo, use_sun_sensor=use_sun_sensor)
+    irradiance = float(compute_irradiance(photo, use_sun_sensor=use_sun_sensor))
     reflectance = radiance * math.pi / irradiance
     reflectance[reflectance < 0.0] = 0.0
     reflectance[reflectance > 1.0] = 1.0
