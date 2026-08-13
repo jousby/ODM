@@ -18,7 +18,7 @@ RUN pixi run -e gpu build && pixi run -e gpu test
 
 RUN mkdir -p /odm-runtime/SuperBuild /odm-runtime/scripts \
     && cp -a SuperBuild/install /odm-runtime/SuperBuild/ \
-    && cp -a opendm stages /odm-runtime/ \
+    && cp -a opendm stages contrib /odm-runtime/ \
     && cp run.py settings.yaml VERSION /odm-runtime/ \
     && cp scripts/docker-entrypoint.sh scripts/smoke.py /odm-runtime/scripts/
 

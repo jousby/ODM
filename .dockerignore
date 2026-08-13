@@ -13,7 +13,6 @@ images_resize
 venv
 .pixi
 scripts/pixi-shell-hook
-/contrib
 /docs
 /hooks
 /img
