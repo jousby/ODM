@@ -40,4 +40,4 @@ jobs:
           GIT_COMMIT=${{ github.sha }}
           BUILD_DATE=${{ steps.buildmeta.outputs.date }}
           IMAGE_VERSION=${{ steps.buildmeta.outputs.version }}
-        tags: opendronemap/odm:gpu-edge
+        tags: opendronemap/odm:edge-gpu
