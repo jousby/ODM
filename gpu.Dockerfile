@@ -60,7 +60,12 @@ COPY --from=prod-env /code/.pixi/envs/gpu-prod .pixi/envs/gpu-prod
 COPY --from=prod-env /code/scripts/pixi-shell-hook scripts/pixi-shell-hook
 COPY --from=builder /odm-runtime/ ./
 
+# The smoke test launches the CUDA-linked OpenMVS binaries, which need
+# libcuda.so.1. No driver is injected during a build, so fall back to the compat
+# driver this base image ships but leaves off the loader path. Keep it scoped to
+# this step: at runtime the host driver must take precedence over compat.
 RUN chmod +x scripts/docker-entrypoint.sh run.py \
-    && bash scripts/docker-entrypoint.sh python3 scripts/smoke.py
+    && LD_LIBRARY_PATH=/usr/local/cuda/compat \
+       bash scripts/docker-entrypoint.sh python3 scripts/smoke.py
 
 ENTRYPOINT ["/code/scripts/docker-entrypoint.sh"]
