@@ -4,6 +4,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# A superseded run tells us nothing, and the GPU image takes about an hour to
+# build, so let a new push to the same ref replace the one in flight.
+concurrency:
+  group: build-prs-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   pixi:
     strategy:
@@ -50,3 +56,34 @@ jobs:
         push: false
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+  docker-gpu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+    - name: Free up disk space
+      # The GPU image is ~11GB and its build stages several GB more, well over
+      # what a hosted runner leaves free. Report before and after, so a build
+      # that runs out of room later is diagnosable from the log.
+      run: |
+        df -h /
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                    /usr/local/share/boost "$AGENT_TOOLSDIRECTORY"
+        sudo swapoff -a || true
+        sudo rm -f /mnt/swapfile /swapfile
+        docker image prune -af
+        df -h /
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    # No gha cache here: the Actions cache is capped at 10GB for the whole
+    # repository, so caching this image would thrash it and evict the CPU
+    # image's entries.
+    - name: Build runtime image
+      uses: docker/build-push-action@v6
+      with:
+        file: ./gpu.Dockerfile
+        target: runtime
+        platforms: linux/amd64
+        push: false
