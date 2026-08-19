@@ -8,6 +8,11 @@ RUN if id "ubuntu" >/dev/null 2>&1; then \
 
 WORKDIR /code
 
+# No NVIDIA driver is present during the build, so pixi cannot detect the __cuda
+# virtual package the gpu environments require. The driver is supplied at runtime
+# by the NVIDIA container runtime; mock it here to match the cuda floor in pixi.toml.
+ENV CONDA_OVERRIDE_CUDA=12.0
+
 FROM dev AS builder
 
 COPY pixi.toml pixi.lock ./
