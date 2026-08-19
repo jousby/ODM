@@ -32,8 +32,18 @@ endif()
 
 SET(GPU_CMAKE_ARGS "")
 if(UNIX)
-    if (EXISTS "/usr/local/cuda/lib64/stubs")
-        SET(GPU_CMAKE_ARGS -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs)
+    # OpenMVS links libcuda, the NVIDIA driver library, which is absent wherever no
+    # driver is installed. Fall back to the linker stub the CUDA toolkit ships: its
+    # SONAME is libcuda.so.1 and the stubs directory holds no file of that name, so
+    # the loader still resolves the real driver at runtime.
+    find_library(SB_LIBCUDA cuda)
+    if(NOT SB_LIBCUDA)
+        foreach(_stubs "$ENV{CONDA_PREFIX}/lib/stubs" "/usr/local/cuda/lib64/stubs")
+            if (EXISTS "${_stubs}/libcuda.so")
+                SET(GPU_CMAKE_ARGS -DCMAKE_LIBRARY_PATH=${_stubs})
+                break()
+            endif()
+        endforeach()
     endif()
 endif()
 
