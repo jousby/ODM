@@ -68,17 +68,35 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v6
+    # Start from a known state. The post-build reclaim does not run if the job is
+    # killed outright, and this build needs most of the free space on the runner.
+    - name: Free space before build
+      run: |
+        docker builder prune -af
+        docker image prune -f
+        echo "--- free before build"
+        df -h /
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
+      with:
+        # One worker at a time. The builder and prod-env stages are independent,
+        # so buildkit would otherwise materialise both at once, and each carries a
+        # multi-GB conda environment before anything is compiled.
+        buildkitd-config-inline: |
+          [worker.oci]
+            max-parallelism = 1
     - name: Build runtime image
       uses: docker/build-push-action@v6
       with:
         file: ./gpu.Dockerfile
         target: runtime
         push: false
-    - name: Reclaim space
+    - name: Report and reclaim space
       if: always()
       run: |
+        echo "--- free after build (difference from before is what it used)"
+        df -h /
         docker builder prune -af
         docker image prune -f
+        echo "--- free after reclaim"
         df -h /
