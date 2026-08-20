@@ -41,3 +41,11 @@ jobs:
           BUILD_DATE=${{ steps.buildmeta.outputs.date }}
           IMAGE_VERSION=${{ steps.buildmeta.outputs.version }}
         tags: opendronemap/odm:edge-gpu
+    - name: Reclaim space
+      # The runner is persistent and shared, so leave nothing behind: the image
+      # is in the registry by this point.
+      if: always()
+      run: |
+        docker builder prune -af
+        docker image prune -f
+        df -h /
