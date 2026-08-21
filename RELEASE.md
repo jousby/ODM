@@ -11,15 +11,16 @@ workflows react to the tag:
 | Workflow | File | Artifact | Destination |
 | --- | --- | --- | --- |
 | Publish Windows Setup | `.github/workflows/publish-windows.yml` | `ODM_Setup_<version>.exe` (signed) | Attached to the GitHub Release |
-| Publish Docker and WSL Images | `.github/workflows/publish-docker.yaml` | `opendronemap/odm:<version>` and `:latest` | Docker Hub |
+| Publish Docker Images | `.github/workflows/publish-docker.yaml` | `opendronemap/odm:<version>` and `:latest` | Docker Hub |
 | Publish Docker GPU Images | `.github/workflows/publish-docker-gpu.yaml` | `opendronemap/odm:gpu` | Docker Hub |
 
 The **only** asset attached to the GitHub Release object is the Windows
 installer. The Docker images are pushed to Docker Hub, not to the release.
 
-The installer filename comes from the `VERSION` file (`ODM_Setup_{VERSION}.exe`
-in `innosetup.iss`), while the Docker image tag comes from the git tag. Both
-must agree, so `VERSION` and the tag have to be bumped together.
+The `VERSION` file sets the installer filename (`ODM_Setup_{VERSION}.exe` in
+`innosetup.iss`), the `org.opencontainers.image.version` label on every Docker
+image, and the version ODM reports at runtime. Docker image *tags* come from the
+git tag.
 
 ## Pre-flight checklist
 
@@ -42,9 +43,8 @@ artifacts.
 2. Create the GitHub Release and its `v<version>` tag pointing at that commit.
    `svenstaro/upload-release-action` will also create the release if it does not
    already exist, but creating it up front lets you write the changelog.
-3. The tag push triggers all three workflows again. The Windows build takes
-   ~1h30m; let it finish — do not cancel it, or the installer will not be
-   attached.
+3. The tag push triggers all three workflows again. The Windows build is by far
+   the longest.
 
 ## Post-release verification
 

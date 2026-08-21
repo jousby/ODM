@@ -1,31 +1,41 @@
-FROM nvidia/cuda:12.9.1-devel-ubuntu24.04 AS builder
+# GPU image: pixi build with cuda-toolkit, NVIDIA runtime for execution.
 
-# Env variables
-ENV DEBIAN_FRONTEND=noninteractive \
-    PYTHONPATH="$PYTHONPATH:/code/SuperBuild/install/local/lib/python3.12/dist-packages:/code/SuperBuild/install/lib/python3.12/dist-packages:/code/SuperBuild/install/bin/opensfm" \
-    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/code/SuperBuild/install/lib"
+FROM ghcr.io/prefix-dev/pixi:latest AS dev
 
-# Prepare directories
+RUN if id "ubuntu" >/dev/null 2>&1; then \
+        userdel -f -r ubuntu || echo "Failed to delete ubuntu user"; \
+    fi
+
 WORKDIR /code
 
-# Copy everything
+# No NVIDIA driver is present during the build, so pixi cannot detect the __cuda
+# virtual package the gpu environments require. The driver is supplied at runtime
+# by the NVIDIA container runtime; mock it here to match the cuda floor in pixi.toml.
+ENV CONDA_OVERRIDE_CUDA=12.0
+
+FROM dev AS builder
+
+COPY pixi.toml pixi.lock ./
+RUN pixi install --locked -e gpu
+
 COPY . ./
+RUN pixi run -e gpu build && pixi run -e gpu test
 
-# Run the build
-RUN PORTABLE_INSTALL=YES GPU_INSTALL=YES bash configure.sh install
+RUN mkdir -p /odm-runtime/SuperBuild /odm-runtime/scripts \
+    && cp -a SuperBuild/install /odm-runtime/SuperBuild/ \
+    && cp -a opendm stages contrib /odm-runtime/ \
+    && cp run.py settings.yaml VERSION /odm-runtime/ \
+    && cp scripts/docker-entrypoint.sh scripts/smoke.py /odm-runtime/scripts/
 
-# Run the tests
-ENV PATH="/code/venv/bin:$PATH"
-RUN bash test.sh
+FROM dev AS prod-env
 
-# Clean Superbuild
-RUN bash configure.sh clean
+COPY pixi.toml pixi.lock ./
+RUN pixi install --locked -e gpu-prod \
+    && mkdir -p scripts \
+    && pixi shell-hook -e gpu-prod -s bash > scripts/pixi-shell-hook \
+    && rm -rf .pixi/envs/gpu-prod/include .pixi/envs/gpu-prod/share/doc .pixi/envs/gpu-prod/share/man .pixi/envs/gpu-prod/share/info
 
-### END Builder
-
-### Use a second image for the final asset to reduce the number and
-# size of the layers.
-FROM nvidia/cuda:12.9.1-runtime-ubuntu24.04
+FROM nvidia/cuda:12.9.1-runtime-ubuntu24.04 AS runtime
 
 ARG GIT_COMMIT=unknown
 ARG BUILD_DATE=unknown
@@ -41,29 +51,21 @@ LABEL org.opencontainers.image.revision="$GIT_COMMIT" \
       org.opencontainers.image.licenses="AGPL-3.0-only" \
       org.opencontainers.image.vendor="OpenDroneMap"
 
-# Env variables
-ENV DEBIAN_FRONTEND=noninteractive \
-    PYTHONPATH="$PYTHONPATH:/code/SuperBuild/install/local/lib/python3.12/dist-packages:/code/SuperBuild/install/lib/python3.12/dist-packages:/code/SuperBuild/install/bin/opensfm" \
-    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/code/SuperBuild/install/lib" \
-    PDAL_DRIVER_PATH="/code/SuperBuild/install/bin"
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PIXI_ENV=gpu-prod
 
 WORKDIR /code
 
-# Copy everything we built from the builder
-COPY --from=builder /code /code
+COPY --from=prod-env /code/.pixi/envs/gpu-prod .pixi/envs/gpu-prod
+COPY --from=prod-env /code/scripts/pixi-shell-hook scripts/pixi-shell-hook
+COPY --from=builder /odm-runtime/ ./
 
-ENV PATH="/code/venv/bin:$PATH"
+# The smoke test launches the CUDA-linked OpenMVS binaries, which need
+# libcuda.so.1. No driver is injected during a build, so fall back to the compat
+# driver this base image ships but leaves off the loader path. Keep it scoped to
+# this step: at runtime the host driver must take precedence over compat.
+RUN chmod +x scripts/docker-entrypoint.sh run.py \
+    && LD_LIBRARY_PATH=/usr/local/cuda/compat \
+       bash scripts/docker-entrypoint.sh python3 scripts/smoke.py
 
-RUN apt-get update -y \
- && apt-get install -y ffmpeg libtbbmalloc2
-# Install shared libraries that we depend on via APT, but *not*
-# the -dev packages to save space!
-# Also run a smoke test on ODM and OpenSfM
-RUN bash configure.sh installruntimedepsonly \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-  && bash run.sh --help \
-  && bash -c "eval $(python3 /code/opendm/context.py) && python3 -c 'from opensfm import io, pymap'"
-
-# Entry point
-ENTRYPOINT ["python3", "/code/run.py"]
+ENTRYPOINT ["/code/scripts/docker-entrypoint.sh"]

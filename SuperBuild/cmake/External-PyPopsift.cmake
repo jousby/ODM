@@ -1,9 +1,7 @@
 set(_SB_BINARY_DIR "${SB_BINARY_DIR}/pypopsift")
 
 # Pypopsift
-find_package(CUDA 7.0)
-
-if(CUDA_FOUND)
+if(SB_ENABLE_CUDA)
     ExternalProject_Add(pypopsift
         DEPENDS           opensfm
         PREFIX            ${_SB_BINARY_DIR}
@@ -20,7 +18,7 @@ if(CUDA_FOUND)
         CMAKE_ARGS
             -DOUTPUT_DIR=${SB_INSTALL_DIR}/bin/opensfm/opensfm
             -DCMAKE_INSTALL_PREFIX=${SB_INSTALL_DIR}
-            ${WIN32_CMAKE_ARGS}
+            ${CONDA_CMAKE_ARGS}
             ${ARM64_CMAKE_ARGS}
         #--Build step-----------------
         BINARY_DIR        ${_SB_BINARY_DIR}
@@ -32,5 +30,5 @@ if(CUDA_FOUND)
         LOG_BUILD         OFF
         )
 else()
-    message(WARNING "Could not find CUDA >= 7.0")
+    message(STATUS "Skipping pypopsift: ODM_ENABLE_CUDA not set (use the pixi gpu env, or set ODM_ENABLE_CUDA=ON)")
 endif()

@@ -9,5 +9,5 @@ Requirements:
 ## Usage
 
 ```BASH
-docker run -ti --rm -v /home/youruser/folder_with_dems:/input --entrypoint /code/contrib/dem-blend/dem-blend.py opendronemap/odm /input
+docker run -ti --rm -v /home/youruser/folder_with_dems:/input opendronemap/odm python3 /code/contrib/dem-blend/dem-blend.py /input
 ```
